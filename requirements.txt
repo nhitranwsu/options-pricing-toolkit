@@ -1,6 +1,6 @@
-streamlit
-matplotlib
+streamlit>=1.50
 numpy
 scipy
 plotly
+matplotlib
 pytest
