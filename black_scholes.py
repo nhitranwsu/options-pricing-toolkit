@@ -70,6 +70,8 @@ def numerical_greeks(
     option_type: str = "call",
     eps_s: float = 0.01,
     eps_vol: float = 0.0001,
+    eps_t: float = 1e-6,
+    eps_r: float = 0.0001,
 ) -> dict:
     """Calculates Greeks via finite-difference numerical approximations."""
     base_px = black_scholes_price(S, K, T, r, sigma, option_type)
@@ -83,10 +85,20 @@ def numerical_greeks(
     px_vol_down = black_scholes_price(S, K, T, r, sigma - eps_vol, option_type)
     num_vega = (px_vol_up - px_vol_down) / (2.0 * eps_vol)
 
+    px_t_up = black_scholes_price(S, K, T + eps_t, r, sigma, option_type)
+    px_t_down = black_scholes_price(S, K, max(1e-8, T - eps_t), r, sigma, option_type)
+    num_theta = -(px_t_up - px_t_down) / (2.0 * eps_t)
+
+    px_r_up = black_scholes_price(S, K, T, r + eps_r, sigma, option_type)
+    px_r_down = black_scholes_price(S, K, T, max(0.0, r - eps_r), sigma, option_type)
+    num_rho = (px_r_up - px_r_down) / (2.0 * eps_r)
+
     return {
         "num_delta": round(float(num_delta), 4),
         "num_gamma": round(float(num_gamma), 4),
+        "num_theta": round(float(num_theta), 4),
         "num_vega": round(float(num_vega), 4),
+        "num_rho": round(float(num_rho), 4),
     }
 
 
@@ -100,20 +112,29 @@ def implied_volatility(
     tol: float = 1e-6,
     max_iter: int = 100,
 ) -> float:
-    """Computes Implied Volatility using Newton-Raphson with no-arbitrage boundary checks."""
-    intrinsic_val = (
-        max(0.0, S - K * math.exp(-r * T))
-        if option_type.lower() == "call"
-        else max(0.0, K * math.exp(-r * T) - S)
-    )
-    if market_price < intrinsic_val:
+    """Computes Implied Volatility using Newton-Raphson with bisection fallback and no-arbitrage boundary checks."""
+    disc_strike = K * math.exp(-r * T)
+    is_call = option_type.lower() == "call"
+
+    if is_call:
+        lower = max(0.0, S - disc_strike)
+        upper = float(S)
+    elif option_type.lower() == "put":
+        lower = max(0.0, disc_strike - S)
+        upper = float(disc_strike)
+    else:
+        raise ValueError("option_type must be either 'call' or 'put'")
+
+    if not (lower < market_price < upper):
         raise ValueError(
-            f"Market price {market_price:.4f} violates no-arbitrage lower bound ({intrinsic_val:.4f})"
+            f"Price {market_price:.4f} violates no-arbitrage boundary conditions ({lower:.4f}, {upper:.4f})"
         )
 
+    # Initial volatility estimate
     sigma = math.sqrt(2.0 * math.pi / T) * (market_price / S)
     sigma = max(0.05, min(sigma, 3.0))
 
+    # Newton-Raphson iteration
     for _ in range(max_iter):
         price = black_scholes_price(S, K, T, r, sigma, option_type)
         diff = price - market_price
@@ -121,26 +142,38 @@ def implied_volatility(
         if abs(diff) < tol:
             return round(sigma, 6)
 
-        vega = bs_greeks(S, K, T, r, sigma, option_type)["vega"]
+        d1 = (math.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * math.sqrt(T))
+        pdf_d1 = norm_pdf(d1)
+        vega = S * pdf_d1 * math.sqrt(T)
+
         if vega < 1e-8:
             break
 
         sigma -= diff / vega
-        if sigma <= 0:
-            sigma = 1e-4
+        if sigma < 0.001 or sigma > 5.0:
+            break
 
-    low, high = 1e-4, 5.0
+    # Fallback to bisection on [0.001, 5.0]
+    low, high = 0.001, 5.0
+    p_low = black_scholes_price(S, K, T, r, low, option_type)
+    p_high = black_scholes_price(S, K, T, r, high, option_type)
+
+    if market_price < p_low or market_price > p_high:
+        raise ValueError(
+            f"Implied volatility has no root within sane range [0.001, 5.0] (pricing bounds: [{p_low:.4f}, {p_high:.4f}])"
+        )
+
     for _ in range(max_iter):
         mid = (low + high) / 2.0
         p = black_scholes_price(S, K, T, r, mid, option_type)
-        if abs(p - market_price) < tol:
+        if abs(p - market_price) < tol or (high - low) < 1e-7:
             return round(mid, 6)
         if p > market_price:
             high = mid
         else:
             low = mid
 
-    return round(sigma, 6)
+    return round((low + high) / 2.0, 6)
 
 
 def crr_binomial_tree(
