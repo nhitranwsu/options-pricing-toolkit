@@ -43,9 +43,8 @@ with st.sidebar:
 
     st.markdown('<div class="tm pt sp">Contract</div>', unsafe_allow_html=True)
     st.radio("Type", ["Call", "Put"], horizontal=True, key="otype", label_visibility="collapsed")
-    c1, c2 = st.columns(2)
-    c1.number_input("Spot S", min_value=0.01, step=1.0, format="%.2f", key="S")
-    c2.number_input("Strike K", min_value=0.01, step=1.0, format="%.2f", key="K")
+    st.number_input("Spot S", min_value=0.01, step=1.0, format="%.2f", key="S")
+    st.number_input("Strike K", min_value=0.01, step=1.0, format="%.2f", key="K")
 
     st.markdown('<div class="tm pt sp">Expiry</div>', unsafe_allow_html=True)
     st.selectbox("Unit", UNITS, key="unit", label_visibility="collapsed")
