@@ -110,6 +110,12 @@ _CSS_BODY = """
 .res .v { font-size: 26px; font-weight: 600; line-height: 1.2; }
 .res .s { color: var(--ink2); font-size: 12px; text-align: right; }
 .res.err { border-color: var(--short); }
+
+/* author and copyright */
+.author { padding: 10px 13px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); font-size: 12px;
+          color: var(--ink2); line-height: 1.45; margin-bottom: 14px; }
+.author b { display: block; color: var(--ink); font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+.foot { margin-top: 30px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.5; }
 """
 
 
@@ -166,6 +172,19 @@ def expiry_label(c):
 
 
 # ------------------------------------------------------------------------------------------------- HTML panels
+
+
+def author_html():
+    return ('<div class="tm author"><b>Nhi Q Tran</b>'
+            'Designed and built by Nhi Q Tran. Source code is private.</div>')
+
+
+def foot_html():
+    return ('<div class="tm foot">&copy; 2026 Nhi Q Tran. All rights reserved. '
+            'The source code is private and may not be copied or redistributed. '
+            'Research and education tool, not investment advice.</div>')
+
+
 def brand_html():
     return ('<div class="tm brand"><b>Options pricer</b>'
             '<span>Black-Scholes-Merton, binomial tree, Greeks, scenario P&amp;L</span></div>')

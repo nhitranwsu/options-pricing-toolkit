@@ -9,7 +9,7 @@ from analytics import (Contract, desk_greeks, greek_curves, max_loss, option_cha
 from black_scholes import (black_scholes_price, bs_greeks, crr_binomial_tree, implied_volatility,
                            numerical_greeks)
 
-st.set_page_config(page_title="Options pricer", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Options pricer | Nhi Q Tran", layout="wide", initial_sidebar_state="expanded")
 st.markdown(ui.css(), unsafe_allow_html=True)
 
 VIEWS = ["Pricer", "Scenarios", "Chain", "Model"]
@@ -36,6 +36,7 @@ def on_reference():
 
 # ----------------------------------------------------------------------------------------------- sidebar
 with st.sidebar:
+    st.markdown(ui.author_html(), unsafe_allow_html=True)
     b1, b2 = st.columns(2)
     b1.button("Reset", on_click=on_reset, width="stretch")
     b2.button("Test case", on_click=on_reference, width="stretch",
@@ -242,3 +243,4 @@ def model():
 
 
 {"Pricer": pricer, "Scenarios": scenarios, "Chain": chain, "Model": model}[view]()
+st.markdown(ui.foot_html(), unsafe_allow_html=True)
